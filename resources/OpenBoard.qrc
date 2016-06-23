@@ -352,5 +352,7 @@
         <file>images/notAligned.svg</file>
         <file>images/groupItems.svg</file>
         <file>images/ungroupItems.svg</file>
+        <file>images/cursors/pen.png</file>
+        <file>images/cursors/ruler.png</file>
     </qresource>
 </RCC>

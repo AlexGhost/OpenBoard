@@ -51,11 +51,13 @@ class UBResources : public QObject
 
     public:
 
+         QCursor defaultCursor;
          QCursor penCursor;
          QCursor eraserCursor;
          QCursor markerCursor;
          QCursor pointerCursor;
          QCursor handCursor;
+         QCursor rulerCursor;
          QCursor zoomInCursor;
          QCursor zoomOutCursor;
          QCursor arrowCursor;

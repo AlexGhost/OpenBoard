@@ -1722,18 +1722,18 @@ void UBBoardView::setToolCursor (int tool)
         controlViewport->setCursor (UBResources::resources ()->playCursor);
         break;
     case UBStylusTool::Line:
-        controlViewport->setCursor (UBResources::resources ()->penCursor);
+        controlViewport->setCursor (UBResources::resources ()->rulerCursor);
         break;
     case UBStylusTool::Text:
         controlViewport->setCursor (UBResources::resources ()->textCursor);
         break;
     case UBStylusTool::Capture:
-        controlViewport->setCursor (UBResources::resources ()->penCursor);
+        controlViewport->setCursor (UBResources::resources ()->defaultCursor);
         break;
     default:
         Q_ASSERT (false);
         //failsafe
-        controlViewport->setCursor (UBResources::resources ()->penCursor);
+        controlViewport->setCursor (UBResources::resources ()->defaultCursor);
     }
 }
 
