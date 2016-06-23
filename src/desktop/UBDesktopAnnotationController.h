@@ -29,8 +29,8 @@
 #define UBUNINOTESWINDOWCONTROLLER_H_
 
 #include <QtGui>
-#include <QTime>
-#include <QTimer>
+//#include <QTime>
+//#include <QTimer>
 
 #include "gui/UBRightPalette.h"
 
@@ -44,7 +44,7 @@ class UBActionPalette;
 class UBMainWindow;
 class UBRightPalette;
 
-#define PROPERTY_PALETTE_TIMER      1000
+//#define PROPERTY_PALETTE_TIMER      250
 
 /**
  * The uninotes controller. This object allocate a uninotes window and implements all the actions corresponding to
@@ -110,10 +110,10 @@ class UBDesktopAnnotationController : public QObject
         void desktopEraserActionToggled(bool checked);
         void eraseDesktopAnnotations();
         void penActionPressed();
-        void markerActionPressed();
-        void eraserActionPressed();
         void penActionReleased();
+        void markerActionPressed();
         void markerActionReleased();
+        void eraserActionPressed();
         void eraserActionReleased();
         void selectorActionPressed();
         void selectorActionReleased();
@@ -140,12 +140,12 @@ class UBDesktopAnnotationController : public QObject
 
         UBRightPalette* mRightPalette;
 
-        QTime mPenHoldTimer;
-        QTime mMarkerHoldTimer;
-        QTime mEraserHoldTimer;
-        QTimer mHoldTimerPen;
-        QTimer mHoldTimerMarker;
-        QTimer mHoldTimerEraser;
+        //QTime mPenHoldTimer;
+        //QTime mMarkerHoldTimer;
+        //QTime mEraserHoldTimer;
+        //QTimer mHoldTimerPen;
+        //QTimer mHoldTimerMarker;
+        //QTimer mHoldTimerEraser;
 
         bool mWindowPositionInitialized;
         bool mIsFullyTransparent;
