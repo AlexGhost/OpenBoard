@@ -262,7 +262,7 @@ qreal UBZLayerController::changeZLevelTo(QGraphicsItem *item, moveDestination de
     }
 
     //Return new z value assigned to item
-    
+
     // experimental
     item->setZValue(item->data(UBGraphicsItemData::ItemOwnZValue).toReal());
 
@@ -315,6 +315,7 @@ UBGraphicsScene::UBGraphicsScene(UBDocumentProxy* parent, bool enableUndoRedoSta
     , mEraser(0)
     , mPointer(0)
     , mMarkerCircle(0)
+    , mPenCircle(0)
     , mDocument(parent)
     , mDarkBackground(false)
     , mCrossedBackground(false)
@@ -343,6 +344,7 @@ UBGraphicsScene::UBGraphicsScene(UBDocumentProxy* parent, bool enableUndoRedoSta
     createEraiser();
     createPointer();
     createMarkerCircle();
+    createPenCircle();
 
     if (UBApplication::applicationController)
     {
@@ -404,6 +406,8 @@ bool UBGraphicsScene::inputDevicePress(const QPointF& scenePos, const qreal& pre
             // hide the marker preview circle
             if (currentTool == UBStylusTool::Marker)
                 hideMarkerCircle();
+            else if (currentTool == UBStylusTool::Pen || currentTool == UBStylusTool::Line)
+                hidePenCircle();
 
             // ---------------------------------------------------------------
             // Create a new Stroke. A Stroke is a collection of QGraphicsLines
@@ -472,11 +476,18 @@ bool UBGraphicsScene::inputDeviceMove(const QPointF& scenePos, const qreal& pres
 
     if (currentTool == UBStylusTool::Eraser)
     {
+        hidePenCircle();
+        hideMarkerCircle();
+
         drawEraser(position, mInputDeviceIsPressed);
         accepted = true;
     }
 
-    else if (currentTool == UBStylusTool::Marker) {
+    else if (currentTool == UBStylusTool::Marker)
+    {
+        hidePenCircle();
+        hideEraser();
+
         if (mInputDeviceIsPressed)
             hideMarkerCircle();
         else {
@@ -484,6 +495,21 @@ bool UBGraphicsScene::inputDeviceMove(const QPointF& scenePos, const qreal& pres
             accepted = true;
         }
     }
+
+    else if (currentTool == UBStylusTool::Pen || currentTool == UBStylusTool::Line)
+    {
+        hideMarkerCircle();
+        hideEraser();
+
+        if (mInputDeviceIsPressed)
+            hidePenCircle();
+        else {
+            drawPenCircle(position);
+            accepted = true;
+        }
+    }
+
+
 
     if (mInputDeviceIsPressed)
     {
@@ -721,7 +747,30 @@ void UBGraphicsScene::drawMarkerCircle(const QPointF &pPoint)
 
         mMarkerCircle->setRect(QRectF(pPoint.x() - markerRadius, pPoint.y() - markerRadius,
                                       markerDiameter, markerDiameter));
+
+        //Fill the preview circle with current color
+        mMarkerCircle->setBrush(QBrush(UBSettings::settings()->currentMarkerColor()));
+
         mMarkerCircle->show();
+    }
+
+}
+
+void UBGraphicsScene::drawPenCircle(const QPointF &pPoint)
+{
+    if (mPenCircle) {
+        qreal markerDiameter = UBSettings::settings()->currentPenWidth();
+        markerDiameter /= UBApplication::boardController->systemScaleFactor();
+        markerDiameter /= UBApplication::boardController->currentZoom();
+        qreal markerRadius = markerDiameter/2;
+
+        mPenCircle->setRect(QRectF(pPoint.x() - markerRadius, pPoint.y() - markerRadius,
+                                      markerDiameter, markerDiameter));
+
+        //Fill the preview circle with current color
+        mPenCircle->setBrush(QBrush(UBSettings::settings()->currentPenColor()));
+
+        mPenCircle->show();
     }
 
 }
@@ -730,6 +779,13 @@ void UBGraphicsScene::hideMarkerCircle()
 {
     if (mMarkerCircle) {
         mMarkerCircle->hide();
+    }
+}
+
+void UBGraphicsScene::hidePenCircle()
+{
+    if (mPenCircle) {
+        mPenCircle->hide();
     }
 }
 
@@ -952,6 +1008,7 @@ void UBGraphicsScene::setBackground(bool pIsDark, bool pIsCrossed)
 
         updateEraserColor();
         updateMarkerCircleColor();
+        updatePenCircleColor();
         recolorAllItems();
 
         needRepaint = true;
@@ -1143,6 +1200,7 @@ void UBGraphicsScene::hideTool()
 {
     hideEraser();
     hideMarkerCircle();
+    hidePenCircle();
 }
 
 void UBGraphicsScene::leaveEvent(QEvent * event)
@@ -2559,7 +2617,7 @@ void UBGraphicsScene::createMarkerCircle()
         mMarkerCircle->setRect(QRect(0, 0, 0, 0));
         mMarkerCircle->setVisible(false);
 
-        mMarkerCircle->setPen(Qt::DotLine);
+        mMarkerCircle->setPen(Qt::NoPen);
         updateMarkerCircleColor();
 
         mMarkerCircle->setData(UBGraphicsItemData::ItemLayerType, QVariant(UBItemLayerType::Control));
@@ -2567,6 +2625,25 @@ void UBGraphicsScene::createMarkerCircle()
 
         mTools << mMarkerCircle;
         addItem(mMarkerCircle);
+    }
+}
+
+void UBGraphicsScene::createPenCircle()
+{
+    if (UBSettings::settings()->showMarkerPreviewCircle->get().toBool()) {
+        mPenCircle = new QGraphicsEllipseItem();
+
+        mPenCircle->setRect(QRect(0, 0, 0, 0));
+        mPenCircle->setVisible(false);
+
+        mPenCircle->setPen(Qt::NoPen);
+        updatePenCircleColor();
+
+        mPenCircle->setData(UBGraphicsItemData::ItemLayerType, QVariant(UBItemLayerType::Control));
+        mPenCircle->setData(UBGraphicsItemData::itemLayerType, QVariant(itemLayerType::Eraiser));
+
+        mTools << mPenCircle;
+        addItem(mPenCircle);
     }
 }
 
@@ -2594,18 +2671,26 @@ void UBGraphicsScene::updateMarkerCircleColor()
     QBrush mcBrush = mMarkerCircle->brush();
     QPen mcPen = mMarkerCircle->pen();
 
-    if (mDarkBackground) {
-        mcBrush.setColor(UBSettings::markerCircleBrushColorDarkBackground);
-        mcPen.setColor(UBSettings::markerCirclePenColorDarkBackground);
-    }
-
-    else {
-        mcBrush.setColor(UBSettings::markerCircleBrushColorLightBackground);
-        mcPen.setColor(UBSettings::markerCirclePenColorLightBackground);
-    }
+    mcBrush.setColor(UBSettings::settings()->currentMarkerColor());
+    mcPen.setColor(UBSettings::settings()->currentMarkerColor());
 
     mMarkerCircle->setBrush(mcBrush);
     mMarkerCircle->setPen(mcPen);
+}
+
+void UBGraphicsScene::updatePenCircleColor()
+{
+    if (!mPenCircle)
+        return;
+
+    QBrush mcBrush = mPenCircle->brush();
+    QPen mcPen = mPenCircle->pen();
+
+    mcBrush.setColor(UBSettings::settings()->currentPenColor());
+    mcPen.setColor(UBSettings::settings()->currentPenColor());
+
+    mPenCircle->setBrush(mcBrush);
+    mPenCircle->setPen(mcPen);
 }
 
 void UBGraphicsScene::setToolCursor(int tool)
